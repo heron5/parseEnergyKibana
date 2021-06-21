@@ -1,0 +1,7 @@
+Manifest-Version: 1.0
+Main-Class: com.ronny.Main
+Class-Path: commons-logging-1.2.jar httpclient-4.5.13.jar httpasyncclien
+ t-4.1.4.jar httpcore-nio-4.4.14.jar org.eclipse.paho.client.mqttv3_1.2.
+ 5.jar elasticsearch-rest-client-7.13.0.jar httpcore-4.4.14.jar sensor-p
+ roperties-1.0.jar json-simple-1.1.1.jar lookup-spotprice-1.0.jar
+
