@@ -15,6 +15,7 @@ import org.json.simple.parser.JSONParser;
 import java.io.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Scanner;
@@ -253,32 +254,57 @@ public class Main {
                 public void messageArrived(String topic, MqttMessage message) throws Exception {
                     // Called when a message arrives from the server that
                     // matches any subscription made by the client
-
-                    JSONParser parser = new JSONParser();
                     String payLoad = new String(message.getPayload());
-                    JSONObject json = (JSONObject) parser.parse(payLoad);
-                    JSONArray energylogg = (JSONArray) json.get("energylogg");
+                    // Check if logging is from Vilan or other sources.
+                    // Vilan has the old query-string format.
 
-                    if (finalLoggLevel > 1)
+                    if (topic.equals("vilan/energy/tot/update")) {
                         System.out.println(topic);
-                    System.out.println(payLoad);
+                        System.out.println(payLoad);
+                        String[] parts = payLoad.split("&");
+                        String effekt = parts[0]; // effekt
+                        String max = parts[1];  // max
+                        String min = parts[2];  // min
+                        String puls = parts[3]; // puls
 
-                    try {
-                        for (Object logg : energylogg) {
-                            JSONObject loggbysource = (JSONObject) logg;
-                            String source = (String) loggbysource.get("source");
-                            double meterKWh = Double.parseDouble((String) loggbysource.get("kwh"));
-                            double power = Double.parseDouble((String) loggbysource.get("power"));
+                        String[] effektParts = effekt.split("=");
+                        Double vilanPower = Double.parseDouble(effektParts[1]);
+                        String[] pulsParts = puls.split("=");
+                        Double vilanPuls = Double.parseDouble(pulsParts[1]);
 
-                            if (source.equals("10") || source.equals("11"))
-                                meterKWh = meterAck(source, power);
-                            Double todayKWh = dailyYield(source, meterKWh);
-                            updateDb(source, power, meterKWh, todayKWh, finalTimeOffset,
-                                      finalKibanaHost, finalKibanaPort, finalLoggLevel);
+                        System.out.println(vilanPower);
+                        System.out.println(vilanPuls);
+                        updateDb("6", vilanPower, vilanPuls, 0.0, finalTimeOffset,
+                                finalKibanaHost, finalKibanaPort, finalLoggLevel);
+                        
+                    }       else {
+
+                        JSONParser parser = new JSONParser();
+                        // String payLoad = new String(message.getPayload());
+                        JSONObject json = (JSONObject) parser.parse(payLoad);
+                        JSONArray energylogg = (JSONArray) json.get("energylogg");
+
+                        if (finalLoggLevel > 1)
+                            System.out.println(topic);
+                        System.out.println(payLoad);
+
+                        try {
+                            for (Object logg : energylogg) {
+                                JSONObject loggbysource = (JSONObject) logg;
+                                String source = (String) loggbysource.get("source");
+                                double meterKWh = Double.parseDouble((String) loggbysource.get("kwh"));
+                                double power = Double.parseDouble((String) loggbysource.get("power"));
+
+                                if (source.equals("10") || source.equals("11"))
+                                    meterKWh = meterAck(source, power);
+                                Double todayKWh = dailyYield(source, meterKWh);
+                                updateDb(source, power, meterKWh, todayKWh, finalTimeOffset,
+                                        finalKibanaHost, finalKibanaPort, finalLoggLevel);
+                            }
+                        } catch (Exception pe) {
+                            //  System.out.println("position: " + pe.getPosition());
+                            System.out.println(pe);
                         }
-                    } catch (Exception pe) {
-                        //  System.out.println("position: " + pe.getPosition());
-                        System.out.println(pe);
                     }
                 }
 
